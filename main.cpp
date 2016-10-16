@@ -27,7 +27,7 @@ void srand48(long s)
 }
 #endif
 
-
+#include <cstdio>
 #include <iostream>
 #include "sphere.h"
 #include "hitable_list.h"
@@ -54,11 +54,9 @@ vec3 color(const ray& r, hitable *world, int depth) {
 }
 
 int main() {
-  int nx = 400;
-  int ny = 200;
+  int nx = 800;
+  int ny = 400;
   int ns = 100;
-  std::cout << "P3\n" << nx << " " << ny << "\n255\n";
-
   float R = cos(M_PI / 4);
 
   const int num = 500;
@@ -87,33 +85,50 @@ int main() {
   hitable *world = new hitable_list(list, i);
   int tnum = i;
 
-  vec3 lookfrom(8, 2, 5);
-  vec3 lookat(0, 1, 0);
-  float dist_to_focus = 10.0; // (lookfrom - lookat).length();
-  float aperture = 0.1;
+  int scene_num = 60;
+  for(int scene = 0; scene < scene_num; scene++){
+    char filename[256];
+    std::FILE *fp;
 
-  // camera  lookfrom, lookat, vup
-  camera cam(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus);
-
-  for(int j = ny - 1; j >= 0; j--){
-    for(int i = 0; i < nx; i++){
-      vec3 col(0, 0, 0);
-      for(int s = 0; s < ns; s++){
-        float u = float(i + drand48()) / float(nx);
-        float v = float(j + drand48()) / float(ny);
-        ray r = cam.get_ray(u, v);
-        vec3 p = r.point_at_parameter(2.0);
-        col += color(r, world, 0);
-      }
-      col /= float(ns);
-      col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]));
-      int ir = int(255.99 * col[0]);
-      int ig = int(255.99 * col[1]);
-      int ib = int(255.99 * col[2]);
-
-      std::cout << ir << " " << ig << " " << ib << "\n";
+    std::sprintf(filename, "out/out_%03d.ppm", scene);
+    if((fp = std::fopen(filename, "w")) == NULL){
+      std::cerr << "Cannot open file: " << filename << std::endl;
+      return -1;
     }
+    std::fprintf(fp, "P3\n%d %d 255\n", nx, ny);
+    //std::cout << "P3\n" << nx << " " << ny << "\n255\n";
+  
+    vec3 lookfrom(8.0 + scene / 10.0, 2, 5);
+    vec3 lookat(0, 1, 0);
+    float dist_to_focus = 10.0; // (lookfrom - lookat).length();
+    float aperture = 0.1;
+  
+    // camera  lookfrom, lookat, vup
+    camera cam(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus);
+  
+    for(int j = ny - 1; j >= 0; j--){
+      for(int i = 0; i < nx; i++){
+        vec3 col(0, 0, 0);
+        for(int s = 0; s < ns; s++){
+          float u = float(i + drand48()) / float(nx);
+          float v = float(j + drand48()) / float(ny);
+          ray r = cam.get_ray(u, v);
+          vec3 p = r.point_at_parameter(2.0);
+          col += color(r, world, 0);
+        }
+        col /= float(ns);
+        col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]));
+        int ir = int(255.99 * col[0]);
+        int ig = int(255.99 * col[1]);
+        int ib = int(255.99 * col[2]);
+  
+        //std::cout << ir << " " << ig << " " << ib << "\n";
+        std::fprintf(fp, "%d %d %d\n", ir, ig, ib);
+      }
+    }
+    std::fclose(fp);
   }
+
   delete world;
   for(int i = 0; i < tnum; i++) delete list[i];
 }
